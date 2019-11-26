@@ -13,6 +13,7 @@ import org.lwjgl.glfw.GLFWCursorPosCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWMouseButtonCallback;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -28,6 +29,7 @@ public class Renderer extends AbstractRenderer {
     private OGLTexture2D cameraImage;
     private CameraGrabber cameraGrabber;
     private OpenCVImageFormat cameraImageFormat;
+    private OGLTexture2D bayerMatrixTexture;
 
     private boolean mousePressed;
     private double oldMx = 0;
@@ -47,7 +49,7 @@ public class Renderer extends AbstractRenderer {
     public void init() {
         //camera grab
         cameraImageFormat = new OpenCVImageFormat(3);
-        cameraGrabber = new CameraGrabber(width,height, 30,1);
+        cameraGrabber = new CameraGrabber(width,height,1);
 
         cameraGrabber.grabImageRaw();
 
@@ -61,6 +63,12 @@ public class Renderer extends AbstractRenderer {
         videoGrabber = new VideoGrabber("./res/Hello_world_!.mp4");
         System.out.println("Video FPS: " + videoGrabber.getFPS());
         videoImageFormat = new OpenCVImageFormat(3);
+
+        try {
+            bayerMatrixTexture = new OGLTexture2D("./bayer.png");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         //load shaders
         shaderProgram = ShaderUtils.loadProgram("/myProject/draw");
@@ -90,6 +98,7 @@ public class Renderer extends AbstractRenderer {
         glViewport(0, 0, width, height);
 
         glUniform2f(locMouseXY, (float) oldMx, (float) oldMy);
+
         if(isCamera){
             if(cameraWidth == 0 || cameraHeight == 0){
                 System.out.println("Camera is corrupted! Width: " + cameraWidth + " Height: " +  cameraHeight);
@@ -115,6 +124,8 @@ public class Renderer extends AbstractRenderer {
 
             glUniform2f(locBufferResolution, videoGrabber.getWidth(), videoGrabber.getHeight());
         }
+
+        bayerMatrixTexture.bind(shaderProgram, "bayerMatrixTexture", 1);
 
         glUniform1i(locDithering, dithering ? 1 : 0);
         glUniform1i(locAscii, ascii ? 1 : 0);
@@ -171,6 +182,7 @@ public class Renderer extends AbstractRenderer {
                             System.out.println("Ascii rendering OFF");
                         } else {
                             ascii = true;
+                            dithering = false;
                             System.out.println("Ascii rendering ON");
                         }
                         break;
@@ -189,6 +201,7 @@ public class Renderer extends AbstractRenderer {
                             System.out.println("Dithering render OFF");
                         } else {
                             dithering = true;
+                            ascii = false;
                             System.out.println("Dithering render ON");
                         }
                         break;

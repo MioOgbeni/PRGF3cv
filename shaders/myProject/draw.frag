@@ -3,7 +3,7 @@ in vec2 outTexCoord;
 out vec4 outColor;
 
 uniform sampler2D texture;
-uniform sampler2D ditheringTexture;
+uniform sampler2D bayerMatrixTexture;
 
 uniform bool ascii;
 uniform bool grayScale;
@@ -53,6 +53,19 @@ void main() {
             color = color * character(n, p);
         }
 
+    }else if(dithering){
+        vec3 value;
+
+        if(grayScale){
+            value = vec3(gray).rgb;
+        }else{
+            value = color.rgb;
+        }
+
+        vec3 oldcolor = value + (value * texture2D(bayerMatrixTexture, (mod(gl_FragCoord.xy, 8.0) / 8.0)).rgb);
+        vec3 newcolor = floor(oldcolor);
+
+        color = newcolor;
     }else{
         if(grayScale){
             color = vec3(gray);
