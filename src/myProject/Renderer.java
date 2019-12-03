@@ -35,11 +35,15 @@ public class Renderer extends AbstractRenderer {
     private double oldMx = 0;
     private double oldMy = 0;
 
-    private int locAscii, locGrayScale, locBufferResolution, locMouseXY, locDithering;
+    private int locAscii, locGrayScale, locBufferResolution, locMouseXY, locDithering, locGauss, locSigma, locOrderStatistic;
     private boolean isCamera = false;
     private boolean ascii = false;
     private boolean grayScale = false;
     private boolean dithering = false;
+    private boolean gauss = false;
+    private boolean orderStatistic = false;
+
+    private float sigma = 1.0f;
 
     private int cameraWidth, cameraHeight;
 
@@ -127,6 +131,9 @@ public class Renderer extends AbstractRenderer {
 
         bayerMatrixTexture.bind(shaderProgram, "bayerMatrixTexture", 1);
 
+        glUniform1f(locOrderStatistic, orderStatistic ? 1 : 0);
+        glUniform1f(locSigma, sigma);
+        glUniform1i(locGauss, gauss ? 1 : 0);
         glUniform1i(locDithering, dithering ? 1 : 0);
         glUniform1i(locAscii, ascii ? 1 : 0);
         glUniform1i(locGrayScale, grayScale ? 1 : 0);
@@ -138,6 +145,8 @@ public class Renderer extends AbstractRenderer {
         String asciiText = "A for toggle ascii rendering";
         String grayScaleText = "G for toggle grayscale rendering";
         String ditheringText = "D for toggle dithering render";
+        String gaussText = "E for toggle gauss filter";
+        String orderStatisticText = "E for toggle order statistic filter";
 
         textRenderer.clear();
         textRenderer.addStr2D(3, 20, differenceText);
@@ -145,6 +154,8 @@ public class Renderer extends AbstractRenderer {
         textRenderer.addStr2D(3, 60, String.format("%s (%s %s)", asciiText, ascii, ascii ? 1 : 0));
         textRenderer.addStr2D(3, 80, String.format("%s (%s %s)", grayScaleText, grayScale, grayScale ? 1 : 0));
         textRenderer.addStr2D(3, 100, String.format("%s (%s %s)", ditheringText, dithering, dithering ? 1 : 0));
+        textRenderer.addStr2D(3, 120, String.format("%s (%s %s) Sigma = %s", gaussText, gauss, gauss ? 1 : 0, sigma));
+        textRenderer.addStr2D(3, 140, String.format("%s (%s %s)", orderStatisticText, orderStatistic, orderStatistic ? 1 : 0));
         textRenderer.addStr2D(width - 90, height - 3, " (c) PGRF UHK");
         textRenderer.draw();
     }
@@ -155,6 +166,9 @@ public class Renderer extends AbstractRenderer {
         locBufferResolution = glGetUniformLocation(shader, "bufferResolution");
         locMouseXY = glGetUniformLocation(shader, "mouseXY");
         locDithering = glGetUniformLocation(shader, "dithering");
+        locGauss = glGetUniformLocation(shader, "gauss");
+        locSigma = glGetUniformLocation(shader, "sigma");
+        locOrderStatistic = glGetUniformLocation(shader, "orderStatistic");
     }
 
     @Override
@@ -183,6 +197,8 @@ public class Renderer extends AbstractRenderer {
                         } else {
                             ascii = true;
                             dithering = false;
+                            gauss = false;
+                            orderStatistic = false;
                             System.out.println("Ascii rendering ON");
                         }
                         break;
@@ -202,8 +218,46 @@ public class Renderer extends AbstractRenderer {
                         } else {
                             dithering = true;
                             ascii = false;
+                            gauss = false;
+                            orderStatistic = false;
                             System.out.println("Dithering render ON");
                         }
+                        break;
+                    case GLFW_KEY_E:
+                        if (gauss) {
+                            gauss = false;
+                            System.out.println("Gauss filter OFF");
+                        } else {
+                            gauss = true;
+                            ascii = false;
+                            dithering = false;
+                            orderStatistic = false;
+                            System.out.println("Gauss filter ON");
+                        }
+                        break;
+                    case GLFW_KEY_O:
+                        if (orderStatistic) {
+                            orderStatistic = false;
+                            System.out.println("Order statistic filter OFF");
+                        } else {
+                            orderStatistic = true;
+                            gauss = false;
+                            ascii = false;
+                            dithering = false;
+                            System.out.println("Order statistic filter ON");
+                        }
+                        break;
+                    case GLFW_KEY_KP_SUBTRACT:
+                        if(sigma > 1.0f){
+                            sigma = sigma - 0.5f;
+                        }
+                        System.out.println("Sigma " + sigma);
+                        break;
+                    case GLFW_KEY_KP_ADD:
+                        if(sigma < 15.0f){
+                            sigma = sigma + 0.5f;
+                        }
+                        System.out.println("Sigma " + sigma);
                         break;
                 }
             }
